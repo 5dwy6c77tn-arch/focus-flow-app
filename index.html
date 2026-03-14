@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Focus Flow</title>
+    <meta name="theme-color" content="#202020">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Focus Flow">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Focus%20Flow%22%2C%22short_name%22%3A%22Focus%20Flow%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23202020%22%2C%22theme_color%22%3A%22%23202020%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2059%2F2059738.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #202020;
+            --card-bg: #2b2b2b;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-color: #60cdff;
+            --accent-hover: #50b0db;
+            --success-bg: #107c10;
+            --border-radius: 16px;
+            --input-bg: #353535;
+            --border-color: #444;
+            --font-family: 'Segoe UI', sans-serif;
+            --shadow: 0 8px 24px rgba(0,0,0,0.25);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-primary); font-family: var(--font-family); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 40px; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        .app-container { display: flex; gap: 20px; max-width: 900px; width: 100%; align-items: stretch; }
+        .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; flex: 1; min-width: 0; }
+        @media (max-width: 850px) {
+            body { padding: 15px; align-items: flex-start; height: auto; }
+            .app-container { flex-direction: column; gap: 15px; }
+            .col-left, .col-right { width: 100%; gap: 15px; }
+            .card { padding: 20px; }
+        }
+        .card { background-color: var(--card-bg); border-radius: var(--border-radius); padding: 24px; position: relative; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.05); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: var(--text-primary); font-weight: 600; font-size: 15px; z-index: 10; }
+        .icon-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; margin-left: 12px; padding: 6px; border-radius: 8px; transition: all 0.2s; }
+        .icon-btn:hover { color: var(--text-primary); background-color: rgba(255,255,255,0.05); }
+        .install-pulse { color: var(--accent-color) !important; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* App Header / Logo */
+        .app-logo-header { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 0; }
+        .app-logo-img { width: 36px; height: 36px; object-fit: contain; }
+        .app-logo-name { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; color: var(--text-primary); }
+
+        /* Focus Card */
+        .focus-main { min-height: 420px; display: flex; flex-direction: column; }
+        .setup-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .setup-content-wrapper { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .setup-view p { color: var(--text-secondary); font-size: 14px; margin-bottom: 30px; line-height: 1.5; max-width: 80%; }
+        .time-picker { background-color: var(--input-bg); border-radius: 12px; display: flex; align-items: center; padding: 15px 25px; margin-bottom: 40px; border: 1px solid var(--border-color); transition: border-color 0.2s; }
+        .time-picker:focus-within { border-color: var(--accent-color); }
+        .time-input { background: transparent; border: none; color: var(--text-primary); font-size: 42px; font-weight: 300; width: 90px; text-align: right; margin-right: 15px; font-family: inherit; }
+        .time-unit { font-size: 14px; color: var(--text-secondary); display: flex; flex-direction: column; align-items: flex-start; }
+        .spin-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; padding: 4px; transition: color 0.2s; }
+        .spin-btn:hover { color: var(--text-primary); }
+        .btn-primary { background-color: var(--accent-color); color: #000; border: none; border-radius: 8px; padding: 12px 35px; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s, transform 0.1s; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-primary:active { transform: scale(0.98); }
+        .timer-view { display: none; flex: 1; flex-direction: column; justify-content: center; align-items: center; }
+        .progress-ring-container { position: relative; width: 220px; height: 220px; margin-bottom: 30px; }
+        .progress-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+        .progress-ring__circle { stroke: var(--accent-color); stroke-dasharray: 628; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
+        .progress-ring__circle-bg { stroke: #3a3a3a; }
+        .timer-center-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .timer-big-text { font-size: 48px; font-weight: 400; }
+        .stop-btn { width: 50px; height: 50px; border-radius: 14px; background-color: var(--accent-color); border: none; color: #000; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 20px; box-shadow: 0 4px 15px rgba(96,205,255,0.3); transition: transform 0.1s; }
+        .stop-btn:active { transform: scale(0.95); }
+
+        /* Notification banner */
+        .media-notif-banner { display: none; margin-top: 16px; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 12px; padding: 10px 14px; align-items: center; gap: 12px; width: 100%; max-width: 320px; }
+        .media-notif-banner.visible { display: flex; }
+        .notif-logo { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .notif-info { flex: 1; }
+        .notif-title { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+        .notif-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+        .notif-controls { display: flex; align-items: center; gap: 6px; }
+        .notif-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 4px; transition: color 0.2s; }
+        .notif-btn:hover { color: var(--text-primary); }
+        .notif-btn.active-icon { color: var(--accent-color); }
+
+        /* Input */
+        .task-input-container { display: none; gap: 10px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); animation: slideDown 0.2s ease-out; }
+        @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+        .task-input { flex: 1; background-color: var(--input-bg); border: 1px solid var(--border-color); color: white; padding: 10px 14px; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
+        .task-input:focus { border-color: var(--accent-color); }
+        .add-task-btn { background-color: #3a3a3a; color: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 14px; cursor: pointer; transition: background 0.2s; }
+        .add-task-btn:hover { background-color: #444; }
+
+        /* Tasks */
+        .tasks-card { min-height: 350px; display: flex; flex-direction: column; }
+        .task-list { list-style: none; overflow-y: auto; flex: 1; max-height: 250px; padding-right: 5px; margin-top: 10px; }
+        .task-item { border: 2px solid transparent; background-color: #353535; border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; }
+        .task-item:hover { background-color: #3e3e3e; }
+        .task-item.selected { border-color: var(--accent-color); background-color: rgba(96,205,255,0.05); }
+        .task-item.completed { opacity: 0.6; }
+        .task-item.completed h4 { text-decoration: line-through; }
+        .task-checkbox-area { display: flex; align-items: center; justify-content: center; z-index: 2; padding: 5px; }
+        .custom-checkbox { width: 22px; height: 22px; border: 2px solid var(--text-secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .task-item.completed .custom-checkbox { background-color: var(--success-bg); border-color: var(--success-bg); }
+        .custom-checkbox i { font-size: 12px; color: white; display: none; }
+        .task-item.completed .custom-checkbox i { display: block; }
+        .task-info { flex: 1; }
+        .task-info h4 { font-weight: 400; font-size: 15px; margin-bottom: 4px; }
+        .task-info span { font-size: 12px; color: var(--text-secondary); }
+        .task-time-spent { font-size: 13px; color: var(--accent-color); font-weight: 600; margin-right: 10px; min-width: 35px; text-align: right; }
+        .delete-task-btn { background: none; border: none; color: #666; cursor: pointer; font-size: 14px; padding: 8px; transition: color 0.2s; }
+        .delete-task-btn:hover { color: #ff6060; }
+
+        /* Habits */
+        .habits-card { min-height: 350px; display: flex; flex-direction: column; flex: 1; }
+        .habits-list { list-style: none; margin-bottom: 20px; overflow-y: auto; flex: 1; min-height: 120px; padding-right: 5px; margin-top: 10px; }
+        .habit-item { display: flex; align-items: center; gap: 10px; padding: 12px; background-color: #353535; margin-bottom: 8px; border-radius: 10px; transition: background 0.2s; }
+        .habit-item:hover { background-color: #3e3e3e; }
+        .habit-text { font-size: 14px; flex: 1; }
+        .chart-container { margin-top: auto; padding-top: 15px; border-top: 1px solid #3a3a3a; }
+        .chart-title { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+        .bar-chart { display: flex; justify-content: space-between; align-items: flex-end; height: 100px; gap: 6px; }
+        .chart-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+        .chart-bar { width: 100%; background-color: #3a3a3a; border-radius: 4px; transition: height 0.5s ease; min-height: 4px; }
+        .chart-bar.active { background-color: var(--accent-color); box-shadow: 0 0 10px rgba(96,205,255,0.2); }
+        .chart-label { font-size: 10px; color: var(--text-secondary); margin-top: 6px; font-weight: 600; }
+
+        /* Daily Progress */
+        .progress-card { min-height: 280px; height: auto; flex-shrink: 0; }
+        .daily-edit-form { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--card-bg); z-index: 20; display: flex; flex-direction: column; gap: 15px; justify-content: center; padding: 24px; border-radius: var(--border-radius); }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 13px; color: var(--text-secondary); }
+        .form-input { background: var(--input-bg); border: 1px solid var(--border-color); color: white; padding: 10px; border-radius: 8px; font-family: inherit; }
+        .form-actions { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-save { background: var(--accent-color); color:black; border:none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size:13px; font-weight:600; flex:1; }
+        .btn-cancel { background: #3a3a3a; color:white; border:none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size:13px; flex:1; }
+        .stats-grid { display: flex; justify-content: center; align-items: center; margin-top: 25px; }
+        .main-stat-circle { position: relative; width: 120px; height: 120px; }
+        .daily-circle-bg { stroke: #3a3a3a; }
+        .daily-circle-fill { stroke: #00d68f; stroke-dasharray: 282; stroke-dashoffset: 282; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+        .circle-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: flex; flex-direction: column; align-items: center; }
+        .circle-text .goal-num { font-size: 26px; font-weight: 400; }
+        .circle-text .goal-unit { font-size: 13px; color: var(--text-secondary); }
+        .circle-text .goal-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+        .completed-text { text-align: center; margin-top: 20px; font-size: 14px; }
+        .hidden { display: none !important; }
+
+        /* Install Modal */
+        .install-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        .install-modal { background: #2b2b2b; border-radius: 20px; padding: 28px 24px 24px; width: 100%; max-width: 420px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 -10px 40px rgba(0,0,0,0.5); animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes slideUp { from { transform:translateY(60px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+        .install-modal-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+        .install-modal-icon { width: 48px; height: 48px; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+        .install-modal-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .install-modal-title { font-size: 17px; font-weight: 600; }
+        .install-modal-sub { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+        .install-steps { list-style: none; margin-bottom: 22px; display: flex; flex-direction: column; gap: 12px; }
+        .install-step { display: flex; align-items: center; gap: 14px; background: #353535; padding: 12px 14px; border-radius: 10px; }
+        .step-number { width: 26px; height: 26px; background: var(--accent-color); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+        .step-text { font-size: 14px; line-height: 1.4; }
+        .step-text strong { color: var(--text-primary); }
+        .step-text span { color: var(--text-secondary); }
+        .step-icon { display: inline-flex; align-items: center; justify-content: center; background: #444; border-radius: 6px; padding: 2px 6px; font-size: 13px; vertical-align: middle; margin: 0 2px; }
+        .install-modal-close { width: 100%; background: #3a3a3a; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+        .install-modal-close:hover { background: #444; }
+        .btn-native-install { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-native-install:hover { background: var(--accent-hover); }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="col-left">
+        <!-- Focus Card -->
+        <div class="card focus-main">
+            <div class="card-header" style="justify-content:center;">
+                <div class="app-logo-header">
+                    <img id="app-logo" class="app-logo-img" src="" alt="Focus Flow">
+                    <span class="app-logo-name">FOCUS FLOW</span>
+                </div>
+            </div>
+            <div id="setup-view" class="setup-view">
+                <div class="setup-content-wrapper">
+                    <p>Achieve your goals and get more done with focus sessions.</p>
+                    <div class="time-picker">
+                        <input type="number" id="setup-time-input" class="time-input" value="30" min="1" max="240" onchange="updateSessionTime(this.value)">
+                        <div class="time-unit">
+                            <button class="spin-btn" onclick="adjustTime(5)"><i class="fa-solid fa-chevron-up"></i></button>
+                            <span>mins</span>
+                            <button class="spin-btn" onclick="adjustTime(-5)"><i class="fa-solid fa-chevron-down"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="startFocus()">
+                        <i class="fa-solid fa-play"></i> Start focus session
+                    </button>
+                </div>
+            </div>
+            <div id="timer-view" class="timer-view">
+                <div class="progress-ring-container">
+                    <svg class="progress-ring" width="220" height="220">
+                        <circle class="progress-ring__circle-bg" stroke-width="12" fill="transparent" r="100" cx="110" cy="110"/>
+                        <circle class="progress-ring__circle" id="timer-ring" stroke-width="12" fill="transparent" r="100" cx="110" cy="110"/>
+                    </svg>
+                    <div class="timer-center-content">
+                        <div class="timer-big-text" id="countdown-text">30:00</div>
+                    </div>
+                </div>
+                <button class="stop-btn" onclick="stopFocus()">
+                    <i class="fa-solid fa-stop"></i>
+                </button>
+                <!-- In-app media notification banner -->
+                <div class="media-notif-banner" id="notif-banner">
+                    <img id="notif-logo" class="notif-logo" src="" alt="">
+                    <div class="notif-info">
+                        <div class="notif-title" id="notif-title">Focus Flow</div>
+                        <div class="notif-sub" id="notif-sub">Session running…</div>
+                    </div>
+                    <div class="notif-controls">
+                        <button class="notif-btn" id="notif-playpause" onclick="togglePause()" title="Pause/Resume">
+                            <i class="fa-solid fa-pause"></i>
+                        </button>
+                        <button class="notif-btn" onclick="stopFocus()" title="Stop">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Card -->
+        <div class="card tasks-card">
+            <div class="card-header">
+                <span><i class="fa-solid fa-check" style="color:#60cdff;margin-right:8px"></i>Tasks</span>
+                <button class="icon-btn" onclick="toggleTaskInput()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:5px;" id="task-header-text">Select a task for your session</p>
+            <div class="task-input-container" id="task-input-container">
+                <input type="text" id="new-task-input" class="task-input" placeholder="Add a task...">
+                <button class="add-task-btn" onclick="addTask()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <ul class="task-list" id="task-list"></ul>
+        </div>
+    </div>
+
+    <div class="col-right">
+        <!-- Daily Progress -->
+        <div class="card progress-card">
+            <div class="card-header">
+                <span>Daily progress</span>
+                <div>
+                    <button id="install-btn" class="icon-btn install-pulse" title="Add to Home Screen" onclick="showInstallModal()">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <button class="icon-btn" onclick="toggleDailyEdit()"><i class="fa-solid fa-pen"></i></button>
+                </div>
+            </div>
+            <div id="daily-stats-view">
+                <div class="stats-grid">
+                    <div class="main-stat-circle">
+                        <svg width="120" height="120" style="transform:rotate(-90deg)">
+                            <circle class="daily-circle-bg" stroke-width="8" fill="transparent" r="45" cx="60" cy="60"/>
+                            <circle class="daily-circle-fill" id="daily-ring" stroke-width="8" fill="transparent" r="45" cx="60" cy="60"/>
+                        </svg>
+                        <div class="circle-text">
+                            <span class="goal-label">Daily goal</span>
+                            <span class="goal-num" id="daily-goal-display">1</span>
+                            <span class="goal-unit">hour</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="completed-text">Completed: <span id="completed-mins-text">0</span> minutes</div>
+            </div>
+            <div id="daily-edit-view" class="daily-edit-form hidden">
+                <div class="form-group">
+                    <label>Daily Goal (Hours)</label>
+                    <input type="number" id="edit-goal-input" class="form-input" value="1" min="1" max="24">
+                </div>
+                <div class="form-group">
+                    <label>Reset time</label>
+                    <input type="time" id="edit-reset-time" class="form-input" value="00:00">
+                </div>
+                <div class="form-actions">
+                    <button class="btn-save" onclick="saveDailySettings()">Save Settings</button>
+                    <button class="btn-cancel" onclick="toggleDailyEdit()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Habits Card -->
+        <div class="card habits-card">
+            <div class="card-header">
+                <span>Daily Check-ins</span>
+                <button class="icon-btn" onclick="toggleHabitInput()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="task-input-container" id="habit-input-container">
+                <input type="text" id="new-habit-input" class="task-input" placeholder="Add a habit...">
+                <button class="add-task-btn" onclick="addHabit()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <ul class="habits-list" id="habits-list"></ul>
+            <div class="chart-container">
+                <div class="chart-title">Weekly Focus Activity (Minutes)</div>
+                <div class="bar-chart" id="weekly-chart"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Install Modal -->
+<div id="install-modal" class="install-modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+    <div class="install-modal">
+        <div class="install-modal-header">
+            <div class="install-modal-icon">
+                <img id="modal-logo" src="" alt="Focus Flow">
+            </div>
+            <div>
+                <div class="install-modal-title">Add to Home Screen</div>
+                <div class="install-modal-sub">Install Focus Flow as an app</div>
+            </div>
+        </div>
+        <button id="native-install-btn" class="btn-native-install hidden" onclick="triggerNativeInstall()">
+            <i class="fa-solid fa-download"></i> Install App
+        </button>
+        <ul class="install-steps" id="install-steps"></ul>
+        <button class="install-modal-close" onclick="hideInstallModal()">Got it</button>
+    </div>
+</div>
+
+<script>
+/* ===================== LOGO ===================== */
+const LOGO_DATA = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAHfAe0DASIAAhEBAxEB/8QAHAABAAEFAQEAAAAAAAAAAAAAAAEDBAUHCAYC/8QAVBAAAQMDAQUFBQQGBAoIBQUAAQACAwQFEQYHEiExQRMiUWFxCBQygZEjQlKhFWJyscHRFjND8BckJYKSorKzwuE0RFRVY5O001NkhKPxNTY3dJT/xAAZAQEBAQEBAQAAAAAAAAAAAAAAAQIDBAX/xAAnEQEBAAIBAwQCAgMBAAAAAAAAAQIRAxIhMQQTIkFRYTJCFCNxM//aAAwDAQACEQMRAD8A7LRQFKAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgHkiIgFERACIOSICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiIHFERAREQEREBERAREQEREBERAREQEQ8kQQCpQIgIgRAREQEREBERARAiAiFEBERAREwgIiICIiAiIgIiICIEQEREBERARQeanCAiIgIiICIiAigqQgIiICIiAiIgIiICIiAiIgIiICIiAiIgHkiHkiBhERAREQEREEFApRAREQEREBERAREQEREBERAREQEwiICIiAiIgIiICIiAiIgIiICIiAiIEDqiIgIiICIiAiIgIiICIiAiIgKCpRACIiAiIOSAhRQUEhERAREQEREBERAREQEQIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgImUQEREBERAREQEREBEQICgqUKCApREBERAREQOKBCgQEREBERAREQCgQoEBERAREQEREAIiICIiAEREBERAKBEQEREBERAREQFGVJTCAEREBERAREQEyiEII5qQgRAREQEREAoE5oEBERAREQERQUEoiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiKCfNBKhxwMk4Ct6urjp495x3jyDRzJVoymqK09rWPcyM8omnH1RNriW40zHY394/q8V8fpNg+KCYDx3VOYYT2NNC0v64HAL6bTSSd6aV37LeAVZ+T6graebAZJh3geCuQrKa3QPbzcHdCCvmjmlgn91ndvcMsf4+Siy37ZDKEr5Hj0VhVzyzT+6U7sO5vf4BFtXM1ZBEcOk4+A4lUTcWdIpiPHdUw0ELBxc4u8cr6dDIwZilP7LuIVZ+RFXU8hxvFp8HcFch2eIOQrMGKY9lURND/AAI5+hXyaeal79M4uYObDxUWWsgEVvS1UczeBw4cwVXBz1RZdpRERRERAREQEREBERAREQEREBERAREQEREBERAUFSoKCUUBSgIiICIiAiIgIiIA5IiICIiAoKkqEBSiICKHEAZPJUTI9xIiaMfiKCvlRlUTFI745nD04IIWdXPd6lB9STMb1yfAKm9zy0vkO5GOPA8V9ns42knDR4qxlea+QRROIgae+78XkiWooojU1BrJB9mOETSrmpmJeKeD+sdzP4Qksoia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ECICIiAiIgIiICIiAiIgIiICIiAifJEBERAREQEREBERAREQEREBERAREQEREBERAREQEREBEUFBIRByRAREQEREEHmmFOECAowpRAREQEREDKZQphAREQEREBERATKFAgZREQAiIgIiIGVBUhEAIiICIiAiIgKFJTCAEREBERAREQEREEHmpREBERAREQEyiEICIEQEREBCigoJREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAQooKB1UoEQEREBERAREQEREBERAREKAVClEAIERAREQEREBERATCYRAREQEREBERAREQEREBERAREQEREBERAREQERQUEqCgU4QEREBERARCgQEREBERAREygDkiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICIiAiIgIiICJlEBERAREQEREBERAREQEREBERAREQEREBERAREQEREBQVKFARMogImUQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREygIiICIiAiIgIiICIiAiIgIiICIiAiZUHkglFGVOUA8kQqEH/9k=';
+document.getElementById('app-logo').src = LOGO_DATA;
+document.getElementById('notif-logo').src = LOGO_DATA;
+document.getElementById('modal-logo').src = LOGO_DATA;
+
+/* ===================== PWA ===================== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    document.getElementById('native-install-btn').classList.remove('hidden');
+});
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    document.getElementById('install-btn').classList.add('hidden');
+});
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    const sw = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>new Response('Offline'))));`;
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+}
+
+/* ===================== INSTALL MODAL ===================== */
+function detectBrowser() {
+    const ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua) && !/Chrome/.test(ua)) return 'ios-safari';
+    if (/iPad|iPhone|iPod/.test(ua) && /Chrome/.test(ua)) return 'ios-chrome';
+    if (/Android/.test(ua) && /Firefox/.test(ua)) return 'android-firefox';
+    if (/Android/.test(ua)) return 'android-chrome';
+    if (/Edg/.test(ua)) return 'edge';
+    if (/Chrome/.test(ua)) return 'chrome-desktop';
+    return 'other';
+}
+const INSTALL_STEPS = {
+    'ios-safari': [
+        {text:'Tap the <strong>Share</strong> button <span class="step-icon"><i class="fa-solid fa-arrow-up-from-bracket"></i></span> at the bottom of Safari'},
+        {text:'Scroll and tap <strong>"Add to Home Screen"</strong>'},
+        {text:'Tap <strong>"Add"</strong> to confirm'}
+    ],
+    'ios-chrome': [
+        {text:'Tap the <strong>three-dot menu</strong> <span class="step-icon">⋮</span> in the top-right'},
+        {text:'Tap <strong>"Add to Home Screen"</strong>'},
+        {text:'Tap <strong>"Add"</strong> to confirm'}
+    ],
+    'android-chrome': [
+        {text:'Tap the <strong>three-dot menu</strong> <span class="step-icon">⋮</span> at the top-right of Chrome'},
+        {text:'Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>'},
+        {text:'Tap <strong>"Add"</strong> or <strong>"Install"</strong>'}
+    ],
+    'android-firefox': [
+        {text:'Tap the <strong>three-dot menu</strong> in Chrome'},
+        {text:'Tap <strong>"Install"</strong>'},
+        {text:'Tap <strong>"Add"</strong>'}
+    ],
+    'edge': [
+        {text:'Click <strong>⋯</strong> menu → <strong>Apps</strong>'},
+        {text:'Click <strong>"Install this site as an app"</strong>'},
+        {text:'Click <strong>"Install"</strong>'}
+    ],
+    'chrome-desktop': [
+        {text:'Look for the <strong>install icon</strong> in the address bar'},
+        {text:'Click it and select <strong>"Install"</strong>'}
+    ],
+    'other': [
+        {text:'Open your <strong>browser menu</strong>'},
+        {text:'Look for <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>'},
+        {text:'Confirm to install'}
+    ]
+};
+function showInstallModal() {
+    document.getElementById('install-modal').classList.remove('hidden');
+    const steps = INSTALL_STEPS[detectBrowser()] || INSTALL_STEPS['other'];
+    document.getElementById('install-steps').innerHTML = steps.map((s,i)=>`
+        <li class="install-step"><div class="step-number">${i+1}</div><div class="step-text">${s.text}</div></li>
+    `).join('');
+    if (deferredPrompt) document.getElementById('native-install-btn').classList.remove('hidden');
+}
+function hideInstallModal() { document.getElementById('install-modal').classList.add('hidden'); }
+function handleModalOverlayClick(e) { if(e.target===document.getElementById('install-modal')) hideInstallModal(); }
+async function triggerNativeInstall() {
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const {outcome} = await deferredPrompt.userChoice;
+    if(outcome==='accepted') { hideInstallModal(); document.getElementById('install-btn').classList.add('hidden'); }
+    deferredPrompt = null;
+    document.getElementById('native-install-btn').classList.add('hidden');
+}
+
+/* ===================== STORAGE ===================== */
+const KEYS = { STATS:'focusApp_stats', TASKS:'focusApp_tasks', HABITS:'focusApp_habits', HISTORY:'focusApp_history' };
+let stats = JSON.parse(localStorage.getItem(KEYS.STATS)) || { dailyMinutes:0, goalHours:1, resetTime:'00:00', lastResetTimestamp:Date.now() };
+let tasks = JSON.parse(localStorage.getItem(KEYS.TASKS)) || [];
+let habits = JSON.parse(localStorage.getItem(KEYS.HABITS)) || [];
+let historyData = JSON.parse(localStorage.getItem(KEYS.HISTORY)) || {};
+function saveStats() { localStorage.setItem(KEYS.STATS, JSON.stringify(stats)); }
+function saveTasks() { localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks)); }
+function saveHabits() { localStorage.setItem(KEYS.HABITS, JSON.stringify(habits)); }
+function saveHistory() { localStorage.setItem(KEYS.HISTORY, JSON.stringify(historyData)); }
+function getTodayString() { return new Date().toLocaleDateString('en-CA'); }
+
+/* ===================== RESET ===================== */
+function getRecentResetPoint(t) {
+    const now = new Date(), [h,m] = t.split(':').map(Number);
+    const today = new Date(now); today.setHours(h,m,0,0);
+    if(now>=today) return today.getTime();
+    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate()-1); yesterday.setHours(h,m,0,0);
+    return yesterday.getTime();
+}
+function checkDailyReset() {
+    if(stats.lastResetTimestamp < getRecentResetPoint(stats.resetTime)) {
+        stats.dailyMinutes = 0; stats.lastResetTimestamp = Date.now();
+        habits.forEach(h=>h.done=false); saveHabits(); saveStats(); renderHabits(); updateDailyUI();
+    }
+}
+checkDailyReset();
+
+/* ===================== DAILY UI ===================== */
+const dailyRing = document.getElementById('daily-ring');
+const dailyCircumference = 2*Math.PI*45;
+dailyRing.style.strokeDasharray = `${dailyCircumference} ${dailyCircumference}`;
+function updateDailyUI() {
+    document.getElementById('completed-mins-text').innerText = stats.dailyMinutes;
+    document.getElementById('daily-goal-display').innerText = stats.goalHours;
+    document.getElementById('edit-goal-input').value = stats.goalHours;
+    document.getElementById('edit-reset-time').value = stats.resetTime;
+    const pct = Math.min((stats.dailyMinutes/(stats.goalHours*60))*100, 100);
+    dailyRing.style.strokeDashoffset = dailyCircumference - (pct/100)*dailyCircumference;
+    renderGraph();
+}
+function incrementDailyProgress() {
+    stats.dailyMinutes++; saveStats();
+    const today = getTodayString();
+    historyData[today] = (historyData[today]||0)+1; saveHistory(); updateDailyUI();
+}
+updateDailyUI();
+
+/* ===================== GRAPH ===================== */
+function renderGraph() {
+    const container = document.getElementById('weekly-chart');
+    container.innerHTML = '';
+    const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], today = new Date(), last7=[];
+    for(let i=6;i>=0;i--) {
+        const d=new Date(today); d.setDate(d.getDate()-i);
+        last7.push({label:days[d.getDay()], val:historyData[d.toLocaleDateString('en-CA')]||0, isToday:i===0});
+    }
+    const maxVal = Math.max(...last7.map(d=>d.val),60);
+    last7.forEach(day=>{
+        const col = document.createElement('div'); col.className='chart-col';
+        col.innerHTML=`<div class="chart-bar ${day.isToday?'active':''}" style="height:${(day.val/maxVal)*100}%;"></div><div class="chart-label">${day.label}</div>`;
+        container.appendChild(col);
+    });
+}
+
+/* ===================== SETTINGS ===================== */
+function toggleDailyEdit() {
+    document.getElementById('daily-edit-view').classList.toggle('hidden');
+    document.getElementById('daily-stats-view').classList.toggle('hidden');
+}
+function saveDailySettings() {
+    const g=parseInt(document.getElementById('edit-goal-input').value);
+    const r=document.getElementById('edit-reset-time').value;
+    if(g>0) stats.goalHours=g;
+    if(r) stats.resetTime=r;
+    saveStats(); updateDailyUI(); checkDailyReset(); toggleDailyEdit();
+}
+
+/* ===================== HABITS ===================== */
+const habitsListEl = document.getElementById('habits-list');
+const habitInputContainer = document.getElementById('habit-input-container');
+const newHabitInput = document.getElementById('new-habit-input');
+function toggleHabitInput() {
+    habitInputContainer.style.display = habitInputContainer.style.display==='flex' ? 'none' : 'flex';
+    if(habitInputContainer.style.display==='flex') newHabitInput.focus();
+}
+function renderHabits() {
+    habitsListEl.innerHTML = '';
+    if(!habits.length) { habitsListEl.innerHTML='<li style="color:#666;font-size:13px;text-align:center;margin-top:10px;">No daily habits added.</li>'; return; }
+    habits.forEach(h=>{
+        const li=document.createElement('li'); li.className='habit-item';
+        li.innerHTML=`<div class="task-checkbox-area" onclick="toggleHabit(${h.id})"><div class="custom-checkbox" style="${h.done?'background-color:var(--success-bg);border-color:var(--success-bg)':''}"><i class="fa-solid fa-check" style="display:${h.done?'block':'none'}"></i></div></div><div class="habit-text" style="${h.done?'text-decoration:line-through;opacity:0.6':''}">${h.text}</div><button class="delete-task-btn" onclick="deleteHabit(${h.id})"><i class="fa-solid fa-xmark"></i></button>`;
+        habitsListEl.appendChild(li);
+    });
+}
+function toggleHabit(id) { const h=habits.find(x=>x.id===id); if(h) h.done=!h.done; saveHabits(); renderHabits(); }
+function addHabit() {
+    const text=newHabitInput.value.trim();
+    if(text) { habits.push({id:Date.now(),text,done:false}); saveHabits(); newHabitInput.value=''; habitInputContainer.style.display='none'; renderHabits(); }
+}
+newHabitInput.addEventListener('keypress', e=>{if(e.key==='Enter') addHabit();});
+function deleteHabit(id) { habits=habits.filter(h=>h.id!==id); saveHabits(); renderHabits(); }
+renderHabits();
+
+/* ===================== TASKS ===================== */
+const taskListEl = document.getElementById('task-list');
+const newTaskInput = document.getElementById('new-task-input');
+const taskInputContainer = document.getElementById('task-input-container');
+function toggleTaskInput() {
+    taskInputContainer.style.display = taskInputContainer.style.display==='flex' ? 'none' : 'flex';
+    if(taskInputContainer.style.display==='flex') newTaskInput.focus();
+}
+function formatTimeSpent(s) { return `${Math.floor(s/60)}m`; }
+function renderTasks() {
+    taskListEl.innerHTML='';
+    if(!tasks.length) { taskListEl.innerHTML='<li style="color:#666;font-size:13px;text-align:center;margin-top:10px;">No tasks yet. Click + to add.</li>'; return; }
+    tasks.forEach(task=>{
+        const li=document.createElement('li');
+        li.className=`task-item ${task.selected?'selected':''} ${task.completed?'completed':''}`;
+        li.id=`task-row-${task.id}`;
+        li.innerHTML=`<div class="task-checkbox-area" onclick="toggleComplete(event,${task.id})"><div class="custom-checkbox"><i class="fa-solid fa-check"></i></div></div><div class="task-info" onclick="selectTask(${task.id})"><h4>${task.text}</h4>${task.selected?'<span><i class="fa-regular fa-clock"></i> Selected for session</span>':'<span>Click to select</span>'}</div><div class="task-time-spent" id="time-spent-${task.id}">${formatTimeSpent(task.timeSpentSeconds)}</div><button class="delete-task-btn" onclick="deleteTask(event,${task.id})"><i class="fa-solid fa-xmark"></i></button>`;
+        taskListEl.appendChild(li);
+    });
+}
+function updateTaskTimeDisplay(id) { const t=tasks.find(t=>t.id===id),el=document.getElementById(`time-spent-${id}`); if(el&&t) el.innerText=formatTimeSpent(t.timeSpentSeconds); }
+function addTask() {
+    const text=newTaskInput.value.trim();
+    if(text) {
+        const t={id:Date.now(),text,selected:false,completed:false,timeSpentSeconds:0};
+        if(!tasks.length) t.selected=true;
+        tasks.push(t); saveTasks(); newTaskInput.value=''; taskInputContainer.style.display='none'; renderTasks();
+    }
+}
+newTaskInput.addEventListener('keypress', e=>{if(e.key==='Enter') addTask();});
+function selectTask(id) { tasks.forEach(t=>t.selected=false); const t=tasks.find(t=>t.id===id); if(t) t.selected=true; saveTasks(); renderTasks(); }
+function toggleComplete(e,id) { e.stopPropagation(); const t=tasks.find(t=>t.id===id); if(t){t.completed=!t.completed; saveTasks(); renderTasks();} }
+function deleteTask(e,id) { e.stopPropagation(); tasks=tasks.filter(t=>t.id!==id); saveTasks(); renderTasks(); }
+renderTasks();
+
+/* ===================== MEDIA SESSION (lock-screen notification) ===================== */
+let audioCtx = null, silentSource = null, gainNode = null;
+
+function startSilentAudio() {
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Create a tiny oscillator at 0 volume — just enough to keep session alive
+        const oscillator = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = 0.001; // essentially silent
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        silentSource = oscillator;
+    } catch(e) { console.warn('AudioContext not available:', e); }
+}
+
+function stopSilentAudio() {
+    try { if(silentSource) { silentSource.stop(); silentSource=null; } if(audioCtx) { audioCtx.close(); audioCtx=null; } } catch(e){}
+}
+
+function setupMediaSession(remainingSeconds, paused) {
+    if(!('mediaSession' in navigator)) return;
+    const m = Math.floor(remainingSeconds/60), s = remainingSeconds%60;
+    const timeStr = `${m}:${s<10?'0':''}${s}`;
+    const activeTask = tasks.find(t=>t.selected);
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: paused ? `⏸ Paused — ${timeStr}` : `⏱ ${timeStr} remaining`,
+        artist: activeTask ? `Focusing on: ${activeTask.text}` : 'Focus Flow session',
+        album: 'Focus Flow',
+        artwork: [{ src: LOGO_DATA, sizes: '512x512', type: 'image/png' }]
+    });
+
+    navigator.mediaSession.playbackState = paused ? 'paused' : 'playing';
+
+    navigator.mediaSession.setActionHandler('play', () => { if(isPaused) togglePause(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if(!isPaused) togglePause(); });
+    navigator.mediaSession.setActionHandler('stop', () => stopFocus());
+    navigator.mediaSession.setActionHandler('previoustrack', null);
+    navigator.mediaSession.setActionHandler('nexttrack', null);
+}
+
+function clearMediaSession() {
+    if(!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+    ['play','pause','stop'].forEach(a => { try { navigator.mediaSession.setActionHandler(a, null); } catch(e){} });
+}
+
+/* ===================== TIMER ===================== */
+const setupView = document.getElementById('setup-view');
+const timerView = document.getElementById('timer-view');
+const countdownText = document.getElementById('countdown-text');
+const timerRing = document.getElementById('timer-ring');
+const notifBanner = document.getElementById('notif-banner');
+const notifTitle = document.getElementById('notif-title');
+const notifSub = document.getElementById('notif-sub');
+const notifPlayPause = document.getElementById('notif-playpause');
+
+let sessionMinutes=30, totalSeconds=1800, remainingSeconds=1800;
+let timerInterval=null, elapsedSeconds=0, isPaused=false;
+
+const timerCircumference = 2*Math.PI*100;
+timerRing.style.strokeDasharray = `${timerCircumference} ${timerCircumference}`;
+
+function updateSessionTime(val) {
+    let n=parseInt(val); if(isNaN(n)||n<1) n=1; if(n>240) n=240;
+    sessionMinutes=n; document.getElementById('setup-time-input').value=n;
+}
+function adjustTime(amount) { updateSessionTime(parseInt(document.getElementById('setup-time-input').value)+amount); }
+
+function updateNotifBanner(remaining, paused) {
+    const m=Math.floor(remaining/60), s=remaining%60;
+    const timeStr=`${m}:${s<10?'0':''}${s}`;
+    const activeTask=tasks.find(t=>t.selected);
+    notifTitle.innerText = paused ? `⏸ Paused` : '⏱ Focus Flow';
+    notifSub.innerText = paused ? `${timeStr} remaining` : (activeTask ? `${timeStr} · ${activeTask.text}` : `${timeStr} remaining`);
+    notifPlayPause.innerHTML = paused ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-pause"></i>';
+    notifPlayPause.classList.toggle('active-icon', paused);
+    notifBanner.classList.add('visible');
+}
+
+function togglePause() {
+    if(!timerInterval && !isPaused) return;
+    isPaused = !isPaused;
+    if(isPaused) {
+        clearInterval(timerInterval); timerInterval=null;
+        if(audioCtx) audioCtx.suspend().catch(()=>{});
+    } else {
+        if(audioCtx) audioCtx.resume().catch(()=>{});
+        timerInterval = setInterval(tick, 1000);
+    }
+    updateNotifBanner(remainingSeconds, isPaused);
+    setupMediaSession(remainingSeconds, isPaused);
+}
+
+function tick() {
+    remainingSeconds--; elapsedSeconds++;
+    const m=Math.floor(remainingSeconds/60), s=remainingSeconds%60;
+    countdownText.innerText=`${m}:${s<10?'0':''}${s}`;
+    timerRing.style.strokeDashoffset = timerCircumference*((100-(remainingSeconds/totalSeconds)*100)/100);
+    if(elapsedSeconds>0 && elapsedSeconds%60===0) incrementDailyProgress();
+    const activeTask=tasks.find(t=>t.selected);
+    if(activeTask&&!activeTask.completed) {
+        activeTask.timeSpentSeconds++;
+        if(activeTask.timeSpentSeconds%5===0) { saveTasks(); updateTaskTimeDisplay(activeTask.id); }
+    }
+    // Update media session every 5s to show live countdown
+    if(remainingSeconds%5===0) setupMediaSession(remainingSeconds, false);
+    updateNotifBanner(remainingSeconds, false);
+    if(remainingSeconds<=0) { clearInterval(timerInterval); saveTasks(); finishFocus(); }
+}
+
+function startFocus() {
+    checkDailyReset(); updateSessionTime(document.getElementById('setup-time-input').value);
+    setupView.classList.add('hidden'); timerView.style.display='flex';
+    totalSeconds=sessionMinutes*60; remainingSeconds=totalSeconds; elapsedSeconds=0; isPaused=false;
+    timerRing.style.strokeDashoffset=0;
+    const activeTask=tasks.find(t=>t.selected);
+    document.getElementById('task-header-text').innerText = activeTask ? 'You are focusing on' : 'Focusing without a specific task';
+    startSilentAudio();
+    setupMediaSession(remainingSeconds, false);
+    updateNotifBanner(remainingSeconds, false);
+    timerInterval=setInterval(tick, 1000);
+}
+
+function stopFocus() {
+    clearInterval(timerInterval); timerInterval=null; isPaused=false;
+    stopSilentAudio(); clearMediaSession();
+    notifBanner.classList.remove('visible');
+    timerView.style.display='none'; setupView.classList.remove('hidden');
+    document.getElementById('task-header-text').innerText='Select a task for your session';
+    renderTasks(); saveTasks();
+}
+
+function finishFocus() {
+    stopSilentAudio(); clearMediaSession();
+    notifBanner.classList.remove('visible');
+    alert('Focus Flow session complete! 🎉');
+    stopFocus();
+}
+</script>
+</body>
+</html>
